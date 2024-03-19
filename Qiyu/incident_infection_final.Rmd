@@ -46,18 +46,18 @@ df.pbc <- pbc_cluster %>%
 
 
 # remove false positive
-df.pbc <- df.pbc %>% left_join(all.visit.border %>% select(cohortid, date, qpcr), 
-                               by = join_by(date, cohortid)) %>%
-  filter(qpcr > 0) %>% select(!qpcr)
+df.pbc <- df.pbc %>% left_join(all.visit.border %>% dplyr::select(cohortid, date, qpcr), 
+                               by = c("date", "cohortid")) %>%
+  filter(qpcr > 0) %>% dplyr::select(!qpcr)
 ```
 
 ```{r all visit processing}
 # filter out useless variable
 df.allvisit <- all.visit.border %>% filter(Phase != 0) %>%
-  select(cohortid, enrolldate, date, malariacat, qpcr, parasitedensity, malaria, travelout, gender, BSdich, qPCRdich) 
+  dplyr::select(cohortid, enrolldate, date, malariacat, qpcr, parasitedensity, malaria, travelout, gender, BSdich, qPCRdich) 
 # add follow-up time, malaria times, and travel times up to 2023-01-31
 # merge with dow
-df.allvisit <- df.allvisit %>% left_join(dow.data%>%select(cohortid, dow), by = "cohortid")
+df.allvisit <- df.allvisit %>% left_join(dow.data %>% dplyr::select(cohortid, dow), by = "cohortid")
 df.allvisit <- df.allvisit %>%
   group_by(cohortid) %>%
   mutate(followup = ifelse(!is.na(dow) & dow < '2023-01-31', as.numeric(round(difftime(dow, min(enrolldate))))+days(1),as.numeric(round(difftime('2023-02-01', min(enrolldate)))))) %>%
@@ -70,7 +70,7 @@ df.allvisit <- df.allvisit %>%
 df.allvisit$gender <- factor(df.allvisit$gender)
 df.allvisit$gender <- relevel(df.allvisit$gender, ref = 'Male')
 # merge to find failure date
-df.allvisit <- df.allvisit %>% left_join(df.pbc %>% select(cohortid, date, h_popUID) %>% distinct(cohortid, date, .keep_all = T), join_by(cohortid, date))
+df.allvisit <- df.allvisit %>% left_join(df.pbc %>% dplyr::select(cohortid, date, h_popUID) %>% distinct(cohortid, date, .keep_all = T), by = c("cohortid", "date"))
 ```
 
 ## algorithm for getting new infections in long-form
@@ -195,7 +195,7 @@ for (id in list_cohortid){
 
 ## organize into incident infection dataframe
 ```{r organize into final incident dataframe}
-df.incident <- df.allvisit %>% select(cohortid, date, qpcr)
+df.incident <- df.allvisit %>% dplyr::select(cohortid, date, qpcr)
 df.incident$incident <- 0
 df.incident$COI <- 0
 for (i in 1: nrow(df_longform_inf)){
@@ -211,9 +211,9 @@ for (i in 1: nrow(df_longform_inf)){
 }
 # add failure
 df.incident <- df.incident %>% 
-  left_join(df.pbc %>% select(cohortid, date, h_popUID) %>% distinct(cohortid, date, .keep_all = T), join_by(cohortid, date)) %>% 
+  left_join(df.pbc %>% dplyr::select(cohortid, date, h_popUID) %>% distinct(cohortid, date, .keep_all = T), by = c("cohortid", "date")) %>% 
   mutate(incident = ifelse(is.na(qpcr)|(qpcr>0 & is.na(h_popUID)), NA, incident)) %>% 
-  select(!h_popUID) %>% arrange(cohortid)
+  dplyr::select(!h_popUID) %>% arrange(cohortid)
 ```
 
 ## Plot individual timeline
@@ -241,7 +241,7 @@ df.allvisit.plot <- df.allvisit %>%
   ))
 
 df.pbc.plot <- df.pbc %>% 
-  left_join(df.allvisit %>% select(!h_popUID), join_by(cohortid, date)) %>% 
+  left_join(df.allvisit %>% dplyr::select(!h_popUID), by = c("cohortid", "date")) %>% 
   mutate(hap_qpcr = qpcr*c_AveragedFrac)
 
 mycolors = c("parasite_positive.malaria" = "red",
